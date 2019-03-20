@@ -12,26 +12,37 @@
 #define ALIGNMENT 16
 #endif
 
+#define ALIGN_V(add,align) (((intptr_t)(add))+((align)-1) &~ (align-1))
+
 
 struct fb {
 	size_t size;
 	struct fb* next;
 	/* ... */
-};
+}fb;
 
+fb* head;
 
 void mem_init(void* mem, size_t taille)
 {
-	assert(mem == get_memory_adr());
-	assert(taille == get_memory_size());
+	mem = get_memory_adr();
+	taille = get_memory_size();
+	/*assert(mem == get_memory_adr());
+	assert(taille == get_memory_size());*/
 	/* ... */
+	head = mem;
+	head->size = taille;
+	head->next = NULL;
 	mem_fit(&mem_fit_first);
 }
 
 void mem_show(void (*print)(void *, size_t, int)) {
-	/* ... */
-	while (/* ... */ 0) {
-		/* ... */
+	void *zc = get_memory_adr();
+	void *fin = zc + get_memory_size();
+	struct fb* zl = head;
+
+	while (zc < fin) {
+		size_t taille = (struct)zc->size
 		print(/* ... */NULL, /* ... */0, /* ... */0);
 		/* ... */
 	}
@@ -56,7 +67,10 @@ void mem_free(void* mem) {
 
 
 struct fb* mem_fit_first(struct fb *list, size_t size) {
-	return NULL;
+	while((list->next != NULL) && (list->size < sizeof(struct fb) + size)){
+		list = list->next;
+	}
+	return list;
 }
 
 /* Fonction à faire dans un second temps
