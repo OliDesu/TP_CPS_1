@@ -12,7 +12,7 @@
 #define ALIGNMENT 16
 #endif
 
-#define ALIGN_V(add,align) (((intptr_t)(add))+((align)-1) &~ (align-1))
+#define ALIGN_V(add,align) ((((__intptr_t)(add))+(align)-1) &~ (align-1))
 
 
 struct fb {
@@ -21,7 +21,7 @@ struct fb {
 	/* ... */
 }fb;
 
-fb* head;
+struct fb* head;
 
 void mem_init(void* mem, size_t taille)
 {
@@ -65,7 +65,7 @@ void *mem_alloc(size_t taille) {
 
 	struct fb* zo = malloc(sizeof(fb));
 
-	size_t taille_totale = (ALIGN_V(taille,ALIGNEMENT) + ALIGN_V(sizeof(size_t),ALIGNEMENT)):
+	size_t taille_totale = (ALIGN_V(taille,ALIGNMENT) + ALIGN_V(sizeof(size_t),ALIGNMENT));
 	zo->size = taille_totale;
 
 	struct fb* fb=mem_fit_fn(head, taille);
@@ -75,10 +75,22 @@ void *mem_alloc(size_t taille) {
 		return NULL;
 	}
 	else{
-		
+		if ((zo->size) <= fb->size){
+			zl->size = fb->size - taille;
+			head->next = zl;
+			fb->size = taille;
+		}
+		else{
+			fb = zo;
+		}
 	}
-	/* ... */
-	return NULL;
+
+	struct fb* tmp;
+	tmp = head;
+	while (tmp != NULL){
+		tmp = tmp->next;
+	}
+	return get_memory_adr();
 }
 
 
@@ -87,10 +99,11 @@ void mem_free(void* mem) {
 
 
 struct fb* mem_fit_first(struct fb *list, size_t size) {
-	while((list->next != NULL) && (list->size < sizeof(struct fb) + size)){
-		list = list->next;
+	struct fb* zone_courante = list;
+	while((zone_courante->next != NULL) && (zone_courante->size < sizeof(struct fb) + size)){
+		zone_courante = zone_courante->next;
 	}
-	return list;
+	return zone_courante;
 }
 
 /* Fonction à faire dans un second temps
@@ -112,9 +125,35 @@ size_t mem_get_size(void *zone) {
  * autres stratégies d'allocation
  */
 struct fb* mem_fit_best(struct fb *list, size_t size) {
-	return NULL;
+	struct fb* zone_courante = list;
+	struct fb* z;
+
+	while(zone_courante != NULL && zone_courante->size < size){
+		zone_courante = zone_courante->next;
+	}
+	z = zone_courante;
+	while(zone_courante != NULL){
+		if(zone_courante->size > size && zone_courante->size < z->size){
+			z = zone_courante;
+		}
+		z = z->next;
+	}
+	return z;
 }
 
 struct fb* mem_fit_worst(struct fb *list, size_t size) {
-	return NULL;
+	struct fb* zone_courante = list;
+	struct fb* z;
+
+	while(zone_courante != NULL && zone_courante->size < size){
+		zone_courante = zone_courante->next;
+	}
+	z = zone_courante;
+	while(zone_courante != NULL){
+		if(zone_courante->size > size && zone_courante->size > z->size){
+			z = zone_courante;
+		}
+		z = z->next;
+	}
+	return z;
 }
