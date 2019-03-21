@@ -42,9 +42,15 @@ void mem_show(void (*print)(void *, size_t, int)) {
 	struct fb* zl = head;
 
 	while (zc < fin) {
-		size_t taille = (struct)zc->size
-		print(/* ... */NULL, /* ... */0, /* ... */0);
-		/* ... */
+		size_t taille = ((struct fb*)zc)->size;
+		int i = 0;
+
+		if (zc == zl){
+			i = 1;
+			zl = zl->next;
+		}
+		print(zc, taille, i);
+		zc = zc + taille;
 	}
 }
 
@@ -56,7 +62,21 @@ void mem_fit(mem_fit_function_t *f) {
 void *mem_alloc(size_t taille) {
 	/* ... */
 	__attribute__((unused)) /* juste pour que gcc compile ce squelette avec -Werror */
-	struct fb *fb=mem_fit_fn(/*...*/NULL, /*...*/0);
+
+	struct fb* zo = malloc(sizeof(fb));
+
+	size_t taille_totale = (ALIGN_V(taille,ALIGNEMENT) + ALIGN_V(sizeof(size_t),ALIGNEMENT)):
+	zo->size = taille_totale;
+
+	struct fb* fb=mem_fit_fn(head, taille);
+	struct fb* zl = malloc(sizeof(fb));
+
+	if(fb == NULL){
+		return NULL;
+	}
+	else{
+		
+	}
 	/* ... */
 	return NULL;
 }
