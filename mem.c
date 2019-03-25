@@ -21,7 +21,55 @@ struct fb {
 	/* ... */
 }fb;
 
-struct fb* head;
+struct fb* head_zl;
+struct fb* head_zo;
+
+void add (struct fb **liste, struct fb *z){
+	if (*liste == NULL){
+		z->next = NULL;
+		*liste = z;
+	}
+	else{
+		if (*liste > z){
+			z->next = *liste;
+			*liste = z;
+		}
+		else{
+			struct fb *zone_courante = *liste;
+			while (zone_courante->next != NULL && zone_courante->next < z){
+				zone_courante = zone_courante->next;
+			}
+			z->next = zone_courante->next;
+			zone_courante->next = z;
+		}
+	}
+}
+
+void supp (struct fb **liste, struct fb *z){
+	if (*liste != NULL){
+		struct fb *zone_courante = *liste;
+		if (zone_courante == z){
+			*liste = zone_courante->next;
+		}
+		else{
+			while (zone_courante->next != NULL && zone_courante->next != z){
+				zone_courante = zone_courante->next;
+			}
+			zone_courante->next = z->next;
+		}
+	}
+}
+
+struct fb* recherche (struct fb **liste, struct fb *z){
+	if(*liste == NULL){
+		return NULL;
+	}
+	struct fb *zone_courante = *liste;
+	while (zone_courante != NULL && zone_courante != z){
+		zone_courante = zone_courante->next;
+	}
+	return zone_courante;
+}
 
 void mem_init(void* mem, size_t taille)
 {
@@ -30,16 +78,16 @@ void mem_init(void* mem, size_t taille)
 	/*assert(mem == get_memory_adr());
 	assert(taille == get_memory_size());*/
 	/* ... */
-	head = mem;
-	head->size = taille;
-	head->next = NULL;
+	head_zl = mem;
+	head_zl->size = taille;
+	head_zl->next = NULL;
 	mem_fit(&mem_fit_first);
 }
 
 void mem_show(void (*print)(void *, size_t, int)) {
 	void *zc = get_memory_adr();
 	void *fin = zc + get_memory_size();
-	struct fb* zl = head;
+	struct fb* zl = head_zl;
 
 	while (zc < fin) {
 		size_t taille = ((struct fb*)zc)->size;
@@ -63,7 +111,7 @@ void *mem_alloc(size_t taille) {
 	/* ... */
 	__attribute__((unused)) /* juste pour que gcc compile ce squelette avec -Werror */
 
-	struct fb* zo = malloc(sizeof(fb));
+	/*struct fb* zo = malloc(sizeof(fb));
 
 	size_t taille_totale = (ALIGN_V(taille,ALIGNMENT) + ALIGN_V(sizeof(size_t),ALIGNMENT));
 	zo->size = taille_totale;
@@ -90,11 +138,48 @@ void *mem_alloc(size_t taille) {
 	while (tmp != NULL){
 		tmp = tmp->next;
 	}
-	return get_memory_adr();
+	return get_memory_adr();*/
+
+	size_t taille_zo = (ALIGN_V(sizeof(struct fb),ALIGNMENT) + ALIGN_V(taille,ALIGNMENT));
+	struct fb * zl = mem_fit_fn(head_zl, taille_zo);
+    if(zl == NULL){
+			return NULL;
+		}
+    size_t taille_zl = zl->size;
+    if(taille_zl - taille_zo >= sizeof(struct fb)){
+        struct fb* new_zl = (struct fb*)((char*)zl + taille_zo);
+        new_zl->size = taille_zl - taille_zo;
+        add(&head_zl, new_zl);
+        supp(&head_zl, zl);
+        zl->size = taille_zo;
+        add(&head_zo,zl);
+    }else{
+        supp(&head_zl,zl);
+        zl->size = taille_zo;
+        add(&head_zo,zl);
+    }
+    return zl;
 }
 
 
 void mem_free(void* mem) {
+    struct fb* zo = recherche(&head_zo,(struct fb*)mem);
+    if(zo != NULL){
+        add(&head_zo,zo);
+        supp(&head_zl,zo);
+
+        struct fb* zone_courante = head_zl;
+        if (zone_courante != NULL){
+            while (zone_courante->next != NULL){
+                if( (char *)zone_courante->next == (zone_courante->size + (char *)zone_courante)){
+                    zone_courante->size = zone_courante->size + zone_courante->next->size;
+                    zone_courante->next = zone_courante->next->next;
+                }else{
+                    zone_courante = zone_courante->next;
+                }
+            }
+        }
+    }
 }
 
 
